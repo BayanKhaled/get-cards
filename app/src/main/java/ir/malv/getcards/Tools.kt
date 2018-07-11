@@ -9,6 +9,8 @@ import android.os.Vibrator
 import android.support.v7.app.AlertDialog
 import android.widget.Toast
 import com.tedpark.tedpermission.rx2.TedRx2Permission
+import ir.malv.getcards.viewcontroller.MainActivity
+import ir.malv.getcards.viewcontroller.MainActivity.Companion.cards
 import java.util.*
 
 /**
@@ -73,17 +75,26 @@ class Tools {
         fun toast(c: Context, s: String, duration: Int = Toast.LENGTH_SHORT) = Toast.makeText(c, s, duration).show()
 
         fun alert(c: Context, title: String, message: String) =
-            AlertDialog.Builder(c)
-                    .setTitle(title)
-                    .setMessage(message)
-                    .setPositiveButton("Ok", null)
-                    .create().show()
+                AlertDialog.Builder(c)
+                        .setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton("Ok", null)
+                        .create().show()
 
-        fun playSound(c: Context, url: String, m: MediaPlayer) =
-            m.let {
-                it.setDataSource(c, Uri.parse(url))
-                it.prepare()
-                it.start()
+        fun playSound(c: Context, url: String, m: MediaPlayer) {
+            try {
+                m.let {
+                    if (it.isPlaying) it.reset()
+                    else {
+                        it.setDataSource(c, Uri.parse(url))
+                        it.prepareAsync()
+                        it.setOnPreparedListener { it.start() }
+                    }
+                }
+            } catch (e: Exception) {
+                toast(c, "Failed to play media. Check logs.")
+                System.err.println("ERROR_PLAYING MEDIA ${e.message}")
             }
+        }
     }
 }

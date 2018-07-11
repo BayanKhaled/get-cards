@@ -11,6 +11,7 @@ import com.squareup.picasso.Picasso
 import ir.malv.getcards.R
 import ir.malv.getcards.Tools
 import ir.malv.getcards.Tools.Companion.askPermission
+import ir.malv.getcards.Tools.Companion.playSound
 import ir.malv.getcards.Tools.Companion.toast
 import ir.malv.getcards.model.Cards
 import ir.malv.getcards.model.FlipAnimation
@@ -29,8 +30,9 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         var cards: Cards? = null
-        val mediaPlayer = MediaPlayer()
+        var mediaPlayer: MediaPlayer? = MediaPlayer()
         var isRequesting = false
+        var index = -1
     }
 
     /**
@@ -113,7 +115,7 @@ class MainActivity : AppCompatActivity() {
     private fun fillCards() {
         isRequesting = false
         progressBar.visibility = View.GONE
-        val index = Tools.getRandomNumberInRange(0, cards!!.cards.size - 1)
+        index = Tools.getRandomNumberInRange(0, cards!!.cards.size - 1)
         val item = cards!!.cards[index]
         animateFab(card)
         with(item) {
@@ -121,11 +123,16 @@ class MainActivity : AppCompatActivity() {
             descriptionText.text = description
             tagText.text = "$tag ($code)"
         }
+        if (mediaPlayer != null)
+            mediaPlayer!!.stop()
+        mediaPlayer = null
+        mediaPlayer = MediaPlayer()
         when (item.code) {
-            0 -> Picasso.get().load(item.image).into(image)
-            1 -> Tools.vibrate(this)
-            2 -> Tools.playSound(this, item.sound, mediaPlayer).also {
+            0 -> Picasso.get().load(item.image).into(image).also { image.visibility = View.VISIBLE }
+            1 -> Tools.vibrate(this).also { image.visibility = View.INVISIBLE }
+            2 -> Tools.playSound(this, item.sound, mediaPlayer!!).also {
                 toast(this, "Click on toolbar to stop media.")
+                image.visibility = View.INVISIBLE
             }
         }
     }
@@ -155,15 +162,32 @@ class MainActivity : AppCompatActivity() {
      * If the retry fab is clicked this will be invoked
      */
     fun onFabClick(view: View) {
-        if (!isRequesting)
+        if (!isRequesting) {
             getPermission()
-        else
+            if (mediaPlayer != null && mediaPlayer!!.isPlaying) mediaPlayer?.stop()
+
+        } else
             toast(this, "Hold On!")
     }
 
     fun onClickToolbar(view: View) {
-        if (mediaPlayer.isPlaying) mediaPlayer.pause()
+        if (mediaPlayer != null && mediaPlayer!!.isPlaying) mediaPlayer?.pause()
     }
 
 
+    /**
+     * If app is closed mediaPlayer must be stopped
+     */
+    override fun onStop() {
+        super.onStop()
+        mediaPlayer?.stop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (index == 2 && cards != null) {
+            mediaPlayer = MediaPlayer()
+            playSound(this, cards!!.cards[index].sound, mediaPlayer!!)
+        }
+    }
 }
