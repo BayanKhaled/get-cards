@@ -2,10 +2,19 @@ package ir.malv.getcards.viewcontroller
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.support.v4.view.ViewCompat
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AppCompatDelegate
+import android.support.v7.widget.AppCompatButton
+import android.view.Gravity
 import android.view.View
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.google.gson.Gson
 import com.squareup.picasso.Picasso
 import ir.malv.getcards.R
@@ -19,6 +28,7 @@ import ir.malv.getcards.network.Network
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_card.*
 
+typealias LP = LinearLayout.LayoutParams
 
 /**
  * Story of this page is:
@@ -43,6 +53,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+        //Add support for SVG
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
         title = "Get The Cards"
         toolbar.subtitle = "Version 0.1"
         //ask for the permission with explanation every time app starts
@@ -67,7 +79,9 @@ class MainActivity : AppCompatActivity() {
      * method reference redirects to two different methods
      * for data success @see #onDataReceived
      * for failure @see #onDataFailed
-     * if permission denied nothing will function
+     * if permission denied nothing will function and a layout will be shown
+     * -> ! If you wanna see that layout just reverse result value by changing the code
+     * from `result` to `!result`
      */
     private fun handlePermissionResult(result: Boolean) {
         if (result) {
@@ -78,8 +92,7 @@ class MainActivity : AppCompatActivity() {
             else
                 fillCards()
         } else {
-
-            //TODO: you can show a layout for this situation
+            setContentView(getDeniedPermissionLayout())
             toast(this, "No functionality when permission is denied.")
         }
     }
@@ -123,16 +136,13 @@ class MainActivity : AppCompatActivity() {
             descriptionText.text = description
             tagText.text = "$tag ($code)"
         }
-        if (mediaPlayer != null)
-            mediaPlayer!!.stop()
-        mediaPlayer = null
-        mediaPlayer = MediaPlayer()
         when (item.code) {
             0 -> Picasso.get().load(item.image).into(image).also { image.visibility = View.VISIBLE }
             1 -> Tools.vibrate(this).also { image.visibility = View.INVISIBLE }
-            2 -> Tools.playSound(this, item.sound, mediaPlayer!!).also {
+            2 -> Tools.playSound(this, item.sound, mediaPlayer!!, { progressBar.visibility = View.GONE }).also {
                 toast(this, "Click on toolbar to stop media.")
                 image.visibility = View.INVISIBLE
+                progressBar.visibility = View.VISIBLE
             }
         }
     }
@@ -164,7 +174,7 @@ class MainActivity : AppCompatActivity() {
     fun onFabClick(view: View) {
         if (!isRequesting) {
             getPermission()
-            if (mediaPlayer != null && mediaPlayer!!.isPlaying) mediaPlayer?.stop()
+            if (mediaPlayer != null && mediaPlayer!!.isPlaying) mediaPlayer!!.stop()
 
         } else
             toast(this, "Hold On!")
@@ -187,7 +197,48 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (index == 2 && cards != null) {
             mediaPlayer = MediaPlayer()
-            playSound(this, cards!!.cards[index].sound, mediaPlayer!!)
+            playSound(this, cards!!.cards[index].sound, mediaPlayer!!, { progressBar.visibility = View.GONE})
+            progressBar.visibility = View.VISIBLE
         }
+    }
+
+
+    /**
+     * If permission is denied this function makes a layout
+     * to show and give option to retry
+     * !!! This'll be useless... Unless you take back permission.
+     * Usually permission is granted.
+     * -> Bad habit : Long method
+     */
+    private fun getDeniedPermissionLayout(): View {
+        val layoutContainer = LinearLayout(this)
+        layoutContainer.layoutParams = LP(LP.MATCH_PARENT, LP.MATCH_PARENT)
+        layoutContainer.orientation = LinearLayout.VERTICAL
+        layoutContainer.gravity = Gravity.CENTER
+        layoutContainer.setBackgroundColor(resources.getColor(R.color.colorAccent))
+        //Image
+        val image = ImageView(this)
+        image.setImageResource(R.drawable.ic_no)
+        image.layoutParams = LP(120, 100)
+        //Text
+        val text = TextView(this)
+        text.text = "Sorry, Without permission we can't do anything :("
+        text.layoutParams = LP(LP.MATCH_PARENT, LP.WRAP_CONTENT)
+        text.textSize = 18f // 18 sp
+        text.gravity = Gravity.CENTER
+        text.setTextColor(Color.parseColor("#FFFFFF"))
+        //Button
+        val retry = AppCompatButton(this)
+        retry.layoutParams = LP(LP.WRAP_CONTENT, LP.WRAP_CONTENT)
+        retry.text = "Retry"
+        retry.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_retry, 0, 0, 0)
+        retry.setTextColor(Color.parseColor("#FFFFFF"))
+        ViewCompat.setBackgroundTintList(retry, ColorStateList.valueOf(resources.getColor(R.color.colorPrimary)))
+        retry.setOnClickListener { recreate() }
+        //Add them to container
+        layoutContainer.addView(image)
+        layoutContainer.addView(text)
+        layoutContainer.addView(retry)
+        return layoutContainer
     }
 }

@@ -81,14 +81,16 @@ class Tools {
                         .setPositiveButton("Ok", null)
                         .create().show()
 
-        fun playSound(c: Context, url: String, m: MediaPlayer) {
+        fun playSound(c: Context, url: String, m: MediaPlayer, onPrepared: ()->Unit) {
             try {
                 m.let {
                     if (it.isPlaying) it.reset()
                     else {
                         it.setDataSource(c, Uri.parse(url))
                         it.prepareAsync()
-                        it.setOnPreparedListener { it.start() }
+                        it.setOnPreparedListener {
+                            onPrepared()
+                            it.start() }
                     }
                 }
             } catch (e: Exception) {
