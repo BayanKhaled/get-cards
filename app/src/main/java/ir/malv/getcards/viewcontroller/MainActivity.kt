@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         //Add support for SVG
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
         title = "Get The Cards"
-        toolbar.subtitle = "Version 0.1"
+        toolbar.subtitle = "Version 0.3"
         //ask for the permission with explanation every time app starts
         getPermission()
     }
