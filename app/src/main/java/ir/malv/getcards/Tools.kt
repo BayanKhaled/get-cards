@@ -94,7 +94,6 @@ class Tools {
                     }
                 }
             } catch (e: Exception) {
-                toast(c, "Failed to play media. Check logs.")
                 System.err.println("ERROR_PLAYING MEDIA ${e.message}")
             }
         }
